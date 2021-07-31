@@ -33,14 +33,6 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "nacos.mysql.master.service.fullname" -}}
-{{- printf "%s-%s" .Release.Name "mysql" | trunc 63 | trimSuffix "-" -}}
-{{- end }}
-
-{{- define "nacos.mysql.slave.service.fullname" -}}
-{{- printf "%s-%s" .Release.Name "mysql-slave" | trunc 63 | trimSuffix "-" -}}
-{{- end }}
-
 {{/*
 Create chart name and version as used by the chart label.
 */}}

@@ -1,21 +1,12 @@
----
 {{- if and (eq .Values.global.mode "cluster") }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "nacos.fullname" . }}-headless
+  name: nacos-hs
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  labels:
-    app: {{ template "nacos.name" . }}
-    chart: {{ template "nacos.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
 spec:
   clusterIP: None
-  selector:
-    app.kubernetes.io/name: {{ include "nacos.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.nacos.serverPort }}
@@ -32,26 +23,21 @@ spec:
       name: old-raft-rpc
       targetPort: 7848
       protocol: TCP
-  {{- range $key, $value := .Values.service.ports }}
-    - name: {{ $key }}
-      targetPort: {{ $key }}
-{{ toYaml $value | indent 6 }}
-  {{- end }}      
+  selector:
+    app.kubernetes.io/name: {{ include "nacos.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
   {{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "nacos.fullname" . }}-cs
+  name: nacos-cs
   labels:
   {{- toYaml .Values.service.labels | nindent 4 }}
   annotations:
   {{- toYaml .Values.service.annotations | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
-  selector:
-    app.kubernetes.io/name: {{ include "nacos.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.nacos.serverPort }}
@@ -70,9 +56,7 @@ spec:
       protocol: TCP
       {{- if eq .Values.service.type "NodePort" }}
       nodePort: {{ .Values.service.nodePort }}
-    {{- range $key, $value := .Values.service.ports }}
-    - name: {{ $key }}
-      targetPort: {{ $key }}
-{{ toYaml $value | indent 6 }}
-  {{- end }}  
   {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "nacos.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

@@ -50,6 +50,8 @@ spec:
       - name: peer-finder-plugin-install
         image: nacos/nacos-peer-finder-plugin:latest
         imagePullPolicy: Always
+        image: {{ template "nacos.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
         volumeMounts:
 {{- if .Values.persistentVolume.mountPaths }}
 {{ toYaml .Values.persistentVolume.mountPaths | indent 10 }}
@@ -77,17 +79,17 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: {{ template "nacos.fullname" . }}
-                key: mysqlMasterPort
+                key: mysqlPort
           - name: MYSQL_USER
             valueFrom:
               secretKeyRef:
                 name: {{ template "nacos.fullname" . }}
-                key: mysqlMasterUser
+                key: mysqlUser
           - name: MYSQL_PASSWD
             valueFrom:
               secretKeyRef:
                 name: {{ template "nacos.fullname" . }}
-                key: mysqlMasterPassword
+                key: mysqlPassword
       {{- if .Values.initContainers }}
 {{ toYaml .Values.initContainers | indent 6 }}
       {{- end }}
@@ -110,54 +112,78 @@ spec:
 {{ toYaml .Values.startCommand |indent 12 }}
           {{- end }}
           env:
+            - name: NACOS_SERVER_PORT
+              value: {{ .Values.nacos.serverPort | quote }}
+            - name: NACOS_APPLICATION_PORT
+              value: {{ .Values.nacos.serverPort | quote }}
+            - name: PREFER_HOST_MODE
+              value: {{ .Values.nacos.preferhostmode | quote }}
             - name: NACOS_REPLICAS
               value: "{{ .Values.replicaCount }}"
+            {{- if eq .Values.global.mode "standalone" }}
+            - name: MODE
+              value: "standalone"
+            {{- else if eq .Values.global.mode "cluster" }}
             - name: SERVICE_NAME
               value: {{ template "nacos.fullname" . }}-headless
+            - name: DOMAIN_NAME
+              value: {{ .Values.nacos.domainName | quote }}
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-            - name: MYSQL_MASTER_SERVICE_HOST
+            {{- end }}
+                        {{- if eq .Values.nacos.storage.type "mysql" }}
+            - name: SPRING_DATASOURCE_PLATFORM
+              value: "mysql"
+            - name: MYSQL_SERVICE_HOST
               valueFrom:
                 secretKeyRef:
                   name: {{ template "nacos.fullname" . }}
-                  key: mysqlMasterHost
-            - name: MYSQL_MASTER_SERVICE_DB_NAME
+                  key: mysqlHost
+            - name: MYSQL_SERVICE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ template "nacos.fullname" . }}
+                  key: mysqlPort
+            - name: MYSQL_SERVICE_DB_NAME
               valueFrom:
                 secretKeyRef:
                   name: {{ template "nacos.fullname" . }}
                   key: mysqlDatabase
-            - name: MYSQL_MASTER_SERVICE_PORT
+            - name: MYSQL_SERVICE_USER
               valueFrom:
                 secretKeyRef:
                   name: {{ template "nacos.fullname" . }}
-                  key: mysqlMasterPort
-            - name: MYSQL_SLAVE_SERVICE_HOST
+                  key: mysqlUser
+            - name: MYSQL_SERVICE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ template "nacos.fullname" . }}
-                  key: mysqlSlaveHost
-            - name: MYSQL_SLAVE_SERVICE_PORT
+                  key: mysqlPassword
+            - name: MYSQL_SERVICE_DB_PARAM
               valueFrom:
-                secretKeyRef:
+                configMapKeyRef:
                   name: {{ template "nacos.fullname" . }}
-                  key: mysqlSlavePort
-            - name: MYSQL_MASTER_SERVICE_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "nacos.fullname" . }}
-                  key: mysqlMasterUser
-            - name: MYSQL_MASTER_SERVICE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ template "nacos.fullname" . }}
-                  key: mysqlMasterPassword
+                  key: mysqlDbparam
+            {{else}}
+            - name: EMBEDDED_STORAGE
+              value: embedded
+          {{end}}
 {{ toYaml .Values.env | indent 12 }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           ports:
+            - name: http
+              containerPort: {{ .Values.nacos.serverPort }}
+              protocol: TCP
+            - containerPort: {{ add .Values.nacos.serverPort 1000}}
+              name: client-rpc
+            - containerPort: {{ add .Values.nacos.serverPort 1001 }}
+              name: raft-rpc
+            - containerPort: 7848
+              name: old-raft-rpc
             {{- range $key, $value := .Values.service.ports }}
             - name: {{ $key }}
               containerPort: {{ $value.port }}
