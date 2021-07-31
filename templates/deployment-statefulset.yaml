@@ -45,20 +45,27 @@ spec:
         app: {{ template "nacos.name" . }}
         release: {{ .Release.Name }}
     spec:
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
 {{- include "nacos.imagePullSecrets" . | indent 6 }}
       initContainers:
+{{- if .Values.plugin.enabled }}
       - name: peer-finder-plugin-install
-        image: nacos/nacos-peer-finder-plugin:latest
-        imagePullPolicy: Always
-        image: {{ template "nacos.image" . }}
-        imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+        image: {{ template "nacos.plugin.image" . }}
+        imagePullPolicy: {{ template "nacos.plugin.image.pullPolicy" . }}
         volumeMounts:
 {{- if .Values.persistentVolume.mountPaths }}
 {{ toYaml .Values.persistentVolume.mountPaths | indent 10 }}
 {{- end }}
+{{- end }}
+{{- if .Values.importer.enabled }}
       - name: import-nacos-mysql-sql
-        image: ygqygq2/mysql-exec-sql:latest
-        imagePullPolicy: Always
+        image: {{ template "nacos.importer.image" . }}
+        imagePullPolicy: {{ template "nacos.importer.image.pullPolicy" . }}
         env: 
           - name: SQL_FILES
             valueFrom:
@@ -69,7 +76,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: {{ template "nacos.fullname" . }}
-                key: mysqlMasterHost
+                key: mysqlHost
           - name: MYSQL_DB
             valueFrom:
               secretKeyRef:
@@ -90,19 +97,14 @@ spec:
               secretKeyRef:
                 name: {{ template "nacos.fullname" . }}
                 key: mysqlPassword
+{{- end }}
       {{- if .Values.initContainers }}
 {{ toYaml .Values.initContainers | indent 6 }}
       {{- end }}
-      nodeSelector:
-{{ toYaml .Values.nodeSelector | indent 8 }}
-      affinity:
-{{ toYaml .Values.affinity | indent 8 }}
-      tolerations:
-{{ toYaml .Values.tolerations | indent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           image: {{ template "nacos.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          imagePullPolicy: {{ template "nacos.image.pullPolicy" . }}
           {{- if .Values.lifecycle }}
           lifecycle:
 {{ toYaml .Values.lifecycle | indent 12 }}
@@ -113,11 +115,11 @@ spec:
           {{- end }}
           env:
             - name: NACOS_SERVER_PORT
-              value: {{ .Values.nacos.serverPort | quote }}
+              value: {{ .Values.serverPort | quote }}
             - name: NACOS_APPLICATION_PORT
-              value: {{ .Values.nacos.serverPort | quote }}
+              value: {{ .Values.serverPort | quote }}
             - name: PREFER_HOST_MODE
-              value: {{ .Values.nacos.preferhostmode | quote }}
+              value: {{ .Values.preferhostmode | quote }}
             - name: NACOS_REPLICAS
               value: "{{ .Values.replicaCount }}"
             {{- if eq .Values.global.mode "standalone" }}
@@ -127,14 +129,14 @@ spec:
             - name: SERVICE_NAME
               value: {{ template "nacos.fullname" . }}-headless
             - name: DOMAIN_NAME
-              value: {{ .Values.nacos.domainName | quote }}
+              value: {{ .Values.domainName | quote }}
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
             {{- end }}
-                        {{- if eq .Values.nacos.storage.type "mysql" }}
+            {{- if eq .Values.storage.type "mysql" }}
             - name: SPRING_DATASOURCE_PLATFORM
               value: "mysql"
             - name: MYSQL_SERVICE_HOST
@@ -176,11 +178,11 @@ spec:
 {{ toYaml .Values.resources | indent 12 }}
           ports:
             - name: http
-              containerPort: {{ .Values.nacos.serverPort }}
+              containerPort: {{ .Values.serverPort }}
               protocol: TCP
-            - containerPort: {{ add .Values.nacos.serverPort 1000}}
+            - containerPort: {{ add .Values.serverPort 1000}}
               name: client-rpc
-            - containerPort: {{ add .Values.nacos.serverPort 1001 }}
+            - containerPort: {{ add .Values.serverPort 1001 }}
               name: raft-rpc
             - containerPort: 7848
               name: old-raft-rpc
@@ -230,7 +232,7 @@ spec:
 {{- end }}
 {{- if .Values.metrics.enabled }}
         - name: metrics
-          image: {{ template "metrics.image" . }}
+          image: {{ template "nacos.metrics.image" . }}
           imagePullPolicy: {{ .Values.metrics.image.pullPolicy | quote }}
           command: [ '/usr/bin/exporter', '-nginx.scrape-uri', 'http://127.0.0.1:8080/status']
           ports:

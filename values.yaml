@@ -13,38 +13,44 @@ global:
   imagePullPolicy: IfNotPresent
 
 ############################nacos###########################
-nacos:
   # 容器image及tag
+image:
+  registry: docker.io
+  repository: nacos/nacos-server
+  tag: 2.0.2
+  pullPolicy: IfNotPresent 
+  pullSecrets: []
+plugin:
+  enable: true
   image:
     registry: docker.io
-    repository: nacos/nacos-server
-    tag: 2.0.2
-    pullPolicy: IfNotPresent 
-    pullSecrets: []
-  plugin:
-    enable: true
-    image:
-      registry: docker.io
-      repository: nacos/nacos-peer-finder-plugin
-      tag: 1.1
-  # 副本个数
-  replicaCount: 1
-  domainName: cluster.local
-  preferhostmode: hostname
-  serverPort: 8848
-  health:
-    enabled: false
-  mode: standalone
-  storage:
-    type: embedded
-  statefulset:
-    enabled: true
+    repository: nacos/nacos-peer-finder-plugin
+    tag: latest
+    pullPolicy: Always
+importer:
+  enable: true
+  image:
+    registry: docker.io
+    repository: ygqygq2/mysql-exec-sql
+    tag: latest
+    pullPolicy: Always 
+# 副本个数
+replicaCount: 1
+domainName: cluster.local
+preferhostmode: hostname
+serverPort: 8848
+health:
+  enabled: false
+mode: standalone
+
+statefulset:
+  enabled: true
 ## String to partially override fullname template (will maintain the release name)
 ##
-  nameOverride: ""
+nameOverride: ""
 ## String to fully override fullname template
 ##
-  fullnameOverride: ""
+fullnameOverride: ""
 
 ## By default deploymentStrategy is set to rollingUpdate with maxSurge of 25% and maxUnavailable of 25% .
 ## You can change type to `Recreate` or can uncomment `rollingUpdate` specification and adjust them to your usage.
@@ -172,7 +178,7 @@ ingress:  # 是否使用nginx暴露域名或端口
   #      - chart-example.local
 
 storage:
-# 
+# type: embedded
   type: mysql
   external:
     enabled: true
