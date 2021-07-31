@@ -9,20 +9,17 @@
 global:
   imageRegistry: ""
   imagePullSecrets: []
-  pullPolicy: IfNotPresent
+  # IfNotPresent: 有则不拉（减少流量和操作步骤），Always: 不管tag总拉（适合tag不变时更新）
+  imagePullPolicy: IfNotPresent
 
 ############################nacos###########################
 nacos:
-  # image:
-  #   repository: nacos/nacos-server
-  #   tag: latest
-  #   pullPolicy: IfNotPresent
   # 容器image及tag
   image:
     registry: docker.io
     repository: nacos/nacos-server
     tag: 2.0.2
-    pullPolicy: IfNotPresent # IfNotPresent: 有则不拉（减少流量和操作步骤），Always: 不管tag总拉（适合tag不变时更新）
+    pullPolicy: IfNotPresent 
     pullSecrets: []
   plugin:
     enable: true
