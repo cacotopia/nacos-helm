@@ -42,7 +42,6 @@ serverPort: 8848
 health:
   enabled: false
 mode: standalone
-
 statefulset:
   enabled: true
 ## String to partially override fullname template (will maintain the release name)
@@ -177,6 +176,80 @@ ingress:  # 是否使用nginx暴露域名或端口
   #    hosts:
   #      - chart-example.local
 
+## Uncomment and modify this to run a command after starting the core container.
+## ref: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/
+lifecycle: {}
+  # preStop:
+  #   exec:
+  #     command: ["/bin/bash","/pre-stop.sh"]
+  # postStart:
+  #   exec:
+  #     command: ["/bin/bash","/post-start.sh"]
+
+## Deployment additional volumes.
+deployment:
+  additionalVolumes: []
+
+## init containers
+## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+## Add init containers. e.g. to be used to give specific permissions for data
+## Add your own init container or uncomment and modify the given example.
+initContainers: {}
+#  - name: fmp-volume-permission
+#    image: busybox
+#    imagePullPolicy: IfNotPresent
+#    command: ['chown','-R', '200', '/extra-data']
+#    volumeMounts:
+#      - name: extra-data
+#        mountPath: /extra-data
+
+## Prometheus Exporter / Metrics
+##
+metrics:
+  enabled: false
+  image:
+    registry: docker.io
+    repository: 
+    tag: 
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ##
+    pullSecrets: []
+    #  - myRegistrKeySecretName
+## Metrics exporter pod Annotation and Labels
+  podAnnotations: {}
+#     prometheus.io/scrape: "true"
+#     prometheus.io/port: "9113"
+#     ## Metrics exporter resource requests and limits
+#     ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+#     ##
+  resources: {}
+
+additionalContainers: {}
+## Additional containers to be added to the core pod.
+#  - name: my-sidecar
+#    image: nginx:latest
+#  - name: lemonldap-ng-controller
+#    image: lemonldapng/lemonldap-ng-controller:0.2.0
+#    args:
+#      - /lemonldap-ng-controller
+#      - --alsologtostderr
+#      - --configmap=$(POD_NAMESPACE)/lemonldap-ng-configuration
+#    env:
+#      - name: POD_NAME
+#        valueFrom:
+#          fieldRef:
+#            fieldPath: metadata.name
+#      - name: POD_NAMESPACE
+#        valueFrom:
+#          fieldRef:
+#            fieldPath: metadata.namespace
+#    volumeMounts:
+#    - name: copy-portal-skins
+#      mountPath: /srv/var/lib/lemonldap-ng/portal/skins
+
 storage:
 # type: embedded
   type: mysql
@@ -199,19 +272,16 @@ mysql:
   root:
     password: nacos
     forcePassword: false
-  
   db:
     user: nacos
     password: nacos
     name: nacos
     forcePassword: false
-  
   replication:
     enabled: true
     user: replicator
     password: replicator
     forcePassword: false
-  
   master:
     persistence:
       enabled: false
@@ -221,7 +291,6 @@ mysql:
       accessModes:
       - ReadWriteOnce
       size: 8Gi
-  
     config: |-
       [mysqld]
       default_authentication_plugin=mysql_native_password
@@ -258,7 +327,6 @@ mysql:
       port=3306
       socket=/opt/bitnami/mysql/tmp/mysql.sock
       pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
-  
   slave:
     replicas: 1
     persistence:
@@ -319,76 +387,4 @@ mysql:
       prometheus.io/scrape: "true"
       prometheus.io/port: "9104"
 
-## Uncomment and modify this to run a command after starting the core container.
-## ref: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/
-lifecycle: {}
-  # preStop:
-  #   exec:
-  #     command: ["/bin/bash","/pre-stop.sh"]
-  # postStart:
-  #   exec:
-  #     command: ["/bin/bash","/post-start.sh"]
 
-## Deployment additional volumes.
-deployment:
-  additionalVolumes: []
-
-## init containers
-## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-## Add init containers. e.g. to be used to give specific permissions for data
-## Add your own init container or uncomment and modify the given example.
-initContainers: {}
-#  - name: fmp-volume-permission
-#    image: busybox
-#    imagePullPolicy: IfNotPresent
-#    command: ['chown','-R', '200', '/extra-data']
-#    volumeMounts:
-#      - name: extra-data
-#        mountPath: /extra-data
-
-## Prometheus Exporter / Metrics
-##
-metrics:
-  enabled: false
-  image:
-    registry: docker.io
-    repository: 
-    tag: 
-    pullPolicy: IfNotPresent
-    ## Optionally specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ##
-    pullSecrets: []
-    #  - myRegistrKeySecretName
-## Metrics exporter pod Annotation and Labels
-  podAnnotations: {}
-#     prometheus.io/scrape: "true"
-#     prometheus.io/port: "9113"
-#     ## Metrics exporter resource requests and limits
-#     ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
-#     ##
-#   # resources: {}
-
-additionalContainers: {}
-## Additional containers to be added to the core pod.
-#  - name: my-sidecar
-#    image: nginx:latest
-#  - name: lemonldap-ng-controller
-#    image: lemonldapng/lemonldap-ng-controller:0.2.0
-#    args:
-#      - /lemonldap-ng-controller
-#      - --alsologtostderr
-#      - --configmap=$(POD_NAMESPACE)/lemonldap-ng-configuration
-#    env:
-#      - name: POD_NAME
-#        valueFrom:
-#          fieldRef:
-#            fieldPath: metadata.name
-#      - name: POD_NAMESPACE
-#        valueFrom:
-#          fieldRef:
-#            fieldPath: metadata.namespace
-#    volumeMounts:
-#    - name: copy-portal-skins
-#      mountPath: /srv/var/lib/lemonldap-ng/portal/skins
