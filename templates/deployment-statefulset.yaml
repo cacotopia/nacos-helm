@@ -122,10 +122,10 @@ spec:
               value: {{ .Values.preferhostmode | quote }}
             - name: NACOS_REPLICAS
               value: "{{ .Values.replicaCount }}"
-            {{- if eq .Values.global.mode "standalone" }}
+            {{- if eq .Values.mode "standalone" }}
             - name: MODE
               value: "standalone"
-            {{- else if eq .Values.global.mode "cluster" }}
+            {{- else if eq .Values.mode "cluster" }}
             - name: SERVICE_NAME
               value: {{ template "nacos.fullname" . }}-headless
             - name: DOMAIN_NAME
